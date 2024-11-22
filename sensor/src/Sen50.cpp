@@ -1,7 +1,7 @@
 /*
 	@author:  Thomas Stadel
 	@date:    2024-11-22
-	@brief:   Driver for connecting to BLE enabled LCD display
+	@brief:   Driver for Sensirion SEN50 particle sensor
 */
 
 #include "Sen50.h"
