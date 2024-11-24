@@ -31,6 +31,7 @@ L86::L86(unsigned long sample_interval_ms) {
 	gps_latitude = 0.;
 	gps_longitude = 0.;
 	gps_speed = 0.;
+	gps_datetime = "0000-00-00 00:00:00";
 }
 
 void L86::loop() {
@@ -46,28 +47,31 @@ void L86::loop() {
 		// Check if this is GPS position data
 		if (str.startsWith("$GNRMC,") && str.indexOf("*") > -1) {
 			// Build datetime string
-			String gps_datetime = "20"; // TODO: In year 2100, please change this to 21,
-							  			// and increment this todo. I wont be there to
-										// thank you, so thank you in advance!
+			String date_part = getPart(str, 9);
+			String time_part = getPart(str, 1);
+			if (date_part.length() == 6 && time_part.length() == 10) {
+				// Seems ok
+				gps_datetime = "20"; // TODO: In year 2100, please change this to 21,
+									 // and increment this todo. I wont be there to
+									 // thank you, so thank you in advance!
 
-			// Date part
-			String part = getPart(str, 9);
-			gps_datetime.concat(part.substring(4, 6)); // Year
-			gps_datetime.concat("-");
-			gps_datetime.concat(part.substring(2, 4)); // Month
-			gps_datetime.concat("-");
-			gps_datetime.concat(part.substring(0, 2)); // Date
-			gps_datetime.concat(" ");
+				// Date part
+				gps_datetime.concat(date_part.substring(4, 6)); // Year
+				gps_datetime.concat("-");
+				gps_datetime.concat(date_part.substring(2, 4)); // Month
+				gps_datetime.concat("-");
+				gps_datetime.concat(date_part.substring(0, 2)); // Date
+				gps_datetime.concat(" ");
 
-			// Time part
-			part = getPart(str, 1);
-			gps_datetime.concat(part.substring(0, 2)); // Hour
-			gps_datetime.concat(":");
-			gps_datetime.concat(part.substring(2, 4)); // Minute
-			gps_datetime.concat(":");
-			gps_datetime.concat(part.substring(4, 6)); // Second
+				// Time part
+				gps_datetime.concat(time_part.substring(0, 2)); // Hour
+				gps_datetime.concat(":");
+				gps_datetime.concat(time_part.substring(2, 4)); // Minute
+				gps_datetime.concat(":");
+				gps_datetime.concat(time_part.substring(4, 6)); // Second
+			}
 
-			// Check if position is valid
+			// Check if data is valid
 			if (getPart(str, 2) == "A") {
 				// Valid GPS position
 				gps_latitude = 0.;

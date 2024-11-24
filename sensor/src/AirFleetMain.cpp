@@ -5,16 +5,14 @@
 */
 
 #include "Particle.h"
+
 #include "BleLcd.h"
 #include "Sen50.h"
 #include "Htu31.h"
 #include "Mics.h"
 #include "L86.h"
 
-// Settings
-#define SAMPLE_INTERVAL_MS            2000
-#define SAMPLE_INTERVAL_METERS        500
-#define I2C_SPEED                     CLOCK_SPEED_100KHZ
+#include "Settings.h"
 
 // Let Device OS manage the connection to the Particle Cloud
 SYSTEM_MODE(MANUAL);
@@ -122,8 +120,9 @@ void loop() {
 
       // GPS
       float data[3];
-      l86.getSample(data, &datetime);
+      Log.info("GPS valid: %d", l86.getSample(data, &datetime));
       Log.info(datetime);
+      Log.info("Latitude: %f, Longitude: %f, Speed: %f", data[0], data[1], data[2]);
 
       Log.info("---------------");
 
