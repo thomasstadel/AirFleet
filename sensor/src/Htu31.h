@@ -1,19 +1,19 @@
 /*
 	@author:  Thomas Stadel
 	@date:    2024-11-21
-	@brief:   Driver for Sensirion SEN50 particle sensor
+	@brief:   Driver for TE HTU31D temperature and humidity sensor
 */
 
-#ifndef SEN50_H
-#define SEN50_H
+#ifndef HTU31_H
+#define HTU31_H
 
 #include "Particle.h"
 
-#define SEN50_ADR 0x69
+#define HTU31_ADR 0x40
 
-class Sen50 {
+class Htu31 {
 	public:
-		Sen50();
+		Htu31();
 
 		void on();
 		void off();

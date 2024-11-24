@@ -26,7 +26,8 @@ void Sen50::off() {
 	writeToDevice(buf, 2);
 }
 
-void Sen50::getSample(uint16_t *pm) {
+// Returns samples in factor x10
+int8_t Sen50::getSample(float_t *pm) {
 	// Read measured values
 	uint8_t buf[] = { 0x03, 0xC4 };
 	writeToDevice(buf, 2);
@@ -36,11 +37,19 @@ void Sen50::getSample(uint16_t *pm) {
 	uint8_t result[24];
 	readFromDevice(result, 24);
 
-	// Parse results and check CRC
-	pm[0] = parseSample(result, 0); // PM1
-	pm[1] = parseSample(result, 3); // PM2.5
-	pm[2] = parseSample(result, 6); // PM4
-	pm[3] = parseSample(result, 9); // PM10
+	// Parse results
+	pm[0] = parseSample(result, 0) / 10.; // PM1
+	pm[1] = parseSample(result, 3) / 10.; // PM2.5
+	pm[2] = parseSample(result, 6) / 10.; // PM4
+	pm[3] = parseSample(result, 9) / 10.; // PM10
+
+	// Check for data error
+	if (pm[0] == 0 || pm[1] == 0 || pm[2] == 0 || pm[3] == 0) {
+		return -1;
+	}
+	else {
+		return 0;
+	}
 }
 
 void Sen50::writeToDevice(uint8_t *buf, size_t len) {
