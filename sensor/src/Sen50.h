@@ -8,8 +8,7 @@
 #define SEN50_H
 
 #include "Particle.h"
-
-#define SEN50_ADR 0x69
+#include "Settings.h"
 
 class Sen50 {
 	public:

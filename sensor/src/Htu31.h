@@ -8,8 +8,7 @@
 #define HTU31_H
 
 #include "Particle.h"
-
-#define HTU31_ADR 0x40
+#include "Settings.h"
 
 class Htu31 {
 	public:

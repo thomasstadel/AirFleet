@@ -9,17 +9,17 @@
 #define L86_H
 
 #include "Particle.h"
-
-#define L86_SERIAL Serial1
+#include "Settings.h"
 
 class L86 {
 	public:
-		L86(unsigned long sample_interval_ms);
+		L86();
 
 		void on();
 		void off();
 		void loop();
 		int8_t getSample(float_t *data, String *datetime);
+		void reset_distance();
 
 	private:
 		void writeToDevice(uint8_t *buf, size_t len);
@@ -30,11 +30,17 @@ class L86 {
 		String trim(String str);
 		String getPart(String str, int part);
 		String readBuffer;
-		float_t gps_latitude;
-		float_t gps_longitude;
+		double_t gps_latitude;
+		double_t gps_longitude;
+		double_t gps_prev_latitude;
+		double_t gps_prev_longitude;
 		float_t gps_speed;
+		float_t gps_distance;
 		uint8_t gps_valid;
+		unsigned long gps_millis;
 		String gps_datetime;
+		float_t calcDecimalDegrees(String str);
+		void reset();
 };
 
 #endif

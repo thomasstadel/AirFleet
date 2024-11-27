@@ -22,5 +22,6 @@ display/        Kode relateret til display board
 
 sensor/         Kode relateret til sensor board
 
+stl/            STL-modeller af bokse
 
-
+webserver/      Kode og database til webserver

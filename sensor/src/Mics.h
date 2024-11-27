@@ -11,8 +11,7 @@
 #define MICS_H
 
 #include "Particle.h"
-
-#define MICS_ADR 0x70
+#include "Settings.h"
 
 class Mics {
 	public:

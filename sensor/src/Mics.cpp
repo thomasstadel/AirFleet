@@ -13,9 +13,11 @@ void Mics::loop() {
 }
 
 void Mics::on() {
+	// TODO: figure out how to put to sleep
 }
 
 void Mics::off() {
+	// TODO: figure out how to wake up
 }
 
 // Returns samples

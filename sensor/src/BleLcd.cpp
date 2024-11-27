@@ -13,30 +13,30 @@ BleLcd::BleLcd() {
 	lcdBlePrintCharacteristicUuid = BleUuid(BLE_LCD_PRINT_UUID);
 
     // Initial state
-    state = State::IDLE;
+    state = IDLE;
 }
 
 void BleLcd::loop() {
 	switch(state) {
-		case State::SCAN:
-			state = State::WAIT;
+		case SCAN:
+			state = WAIT;
 			BLE.scan(scanResultCallback, this);
 			break;
 			
-		case State::CONNECT:
+		case CONNECT:
 			stateConnect();
 			break;
 
-		case State::WAIT:
+		case WAIT:
             // Restart scan every 5 sec.
-			if (millis() - stateTime >= 5000) state = State::SCAN;
+			if (millis() - stateTime >= 5000) state = SCAN;
 			break;
 
-        case State::PAIR:
+        case PAIR:
             statePair();
             break;
 
-        case State::READY:
+        case READY:
             stateReady();
             break;
 	}
@@ -49,17 +49,17 @@ void BleLcd::on() {
 	BLE.setPairingAlgorithm(BlePairingAlgorithm::LESC_ONLY);
 
     // Start scanning
-    state = State::SCAN;
+    state = SCAN;
 }
 
 void BleLcd::off() {
     // Turn off BLE
-    state = State::IDLE;
+    state = IDLE;
     BLE.off();
 }
 
 char BleLcd::clear() {
-    if (state != State::READY) return -1;
+    if (state != READY) return -1;
 
 	// Prepare buffer
 	const uint8_t buf[] = {0};
@@ -72,7 +72,7 @@ char BleLcd::clear() {
 
 // Move cursor to x, y
 char BleLcd::setCursor(const char x, const char y) {
-    if (state != State::READY) return -1;
+    if (state != READY) return -1;
 
     // Prepare buffer
 	const uint8_t buf[] = {x, y};
@@ -85,7 +85,7 @@ char BleLcd::setCursor(const char x, const char y) {
 
 // Print message
 char BleLcd::print(const uint8_t *buf, size_t len) {
-    if (state != State::READY) return -1;
+    if (state != READY) return -1;
 
     // Send
 	lcdPrintCharacteristic.setValue(buf, len);
@@ -93,7 +93,7 @@ char BleLcd::print(const uint8_t *buf, size_t len) {
     return len;
 }
 char BleLcd::print(const String str) {
-    if (state != State::READY) return -1;
+    if (state != READY) return -1;
 
     // Send
     lcdPrintCharacteristic.setValue(str);
@@ -117,7 +117,7 @@ void BleLcd::scanResult(const BleScanResult *scanResult) {
 	serverAddr = scanResult->address();
 
     // Go to connect state
-	state = State::CONNECT;
+	state = CONNECT;
 
 	// Stop scanning
 	BLE.stopScanning();
@@ -129,7 +129,7 @@ void BleLcd::stateConnect() {
 	peer = BLE.connect(serverAddr);
 	if (!peer.connected()) {
         // Go to wait state before restarting a scan
-		state = State::WAIT;
+		state = WAIT;
 		stateTime = millis();
 		return;
 	}
@@ -141,7 +141,7 @@ void BleLcd::stateConnect() {
 
     // Start pairing
 	BLE.startPairing(peer);
-	state = State::PAIR;
+	state = PAIR;
 
 	stateTime = millis();
 }
@@ -150,7 +150,7 @@ void BleLcd::stateConnect() {
 void BleLcd::statePair() {
 	if (!peer.connected()) {
 		// Lost connection - go to wait before scanning
-		state = State::WAIT;
+		state = WAIT;
 		stateTime = millis();
 		return;
 	}
@@ -161,14 +161,14 @@ void BleLcd::statePair() {
 	}
 
     // Ready to rock
-    state = State::READY;
+    state = READY;
 }
 
 // Check connection
 void BleLcd::stateReady() {
 	if (!peer.connected()) {
 		// Lost connection - go to wait before scanning
-		state = State::WAIT;
+		state = WAIT;
 		stateTime = millis();
 		return;
 	}    
