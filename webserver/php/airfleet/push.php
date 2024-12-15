@@ -19,25 +19,30 @@
 
     // Validate data
     $expected_fields = array(
-        "pm1" => "/^[0-9\.]+$/",
-        "pm25" => "/^[0-9\.]+$/",
-        "pm4" => "/^[0-9\.]+$/",
-        "pm10" => "/^[0-9\.]+$/",
-        "temp" => "/^[0-9\.]+$/",
-        "humi" => "/^[0-9\.]+$/",
-        "voc" => "/^[0-9]+$/",
-        "co2" => "/^[0-9]+$/",
-        "lat" => "/^[0-9\.]+$/",
-        "lng" => "/^[0-9\.]+$/",
-        "time" => "/^20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$/"
+        "pm1" => array("/^[0-9\.]+$/", "d"),
+        "pm25" => array("/^[0-9\.]+$/", "d"),
+        "pm4" => array("/^[0-9\.]+$/", "d"),
+        "pm10" => array("/^[0-9\.]+$/", "d"),
+        "temp" => array("/^[0-9\.]+$/", "d"),
+        "humi" => array("/^[0-9\.]+$/", "d"),
+        "voc" => array("/^[0-9]*$/", "i"),
+        "co2" => array("/^[0-9]*$/", "i"),
+        "lat" => array("/^[0-9\.]+$/", "d"),
+        "lng" => array("/^[0-9\.]+$/", "d"),
+        "time" => array("/^20[0-9]{2}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$/", "s")
     );
     $fields = array();
     $values = array();
-    foreach ($expected_fields as $field => $regex) {
-        if (empty($data[$field])) die("Missing field: $field");
-        if (!preg_match($regex, $data[$field])) die("Invalid data in field: $field");
-        $values[] = $data[$field];
+    $types = array();
+    foreach ($expected_fields as $field => $arr) {
+        if (!preg_match($arr[0], $data[$field])) die("Invalid data in field: $field");
+        if (isset($data[$field]) and strlen($data[$field]) > 0) {
+            $fields[] = $field;
+            $values[] = $data[$field];
+            $types[] = $arr[1];
+        }
     }
+    if (count($fields) == 0) die("No data to store");
 
     // Connect to DB
     $db = new mysqli($_db_hostname, $_db_username, $_db_password, $_db_database);
@@ -45,13 +50,13 @@
 
     // Prepare query
     $sql = "INSERT INTO airfleet_log " .
-        "(" . implode(",", array_keys($expected_fields)) . ") " .
+        "(" . implode(",", $fields) . ") " .
         "VALUES " .
-        "(" . implode(",", array_fill(0, count($expected_fields), "?")) . ")";
+        "(" . implode(",", array_fill(0, count($fields), "?")) . ")";
     if (!$stmt = $db->prepare($sql)) die("DB error 2");
 
     // Bind parameters
-    if (!$stmt->bind_param("ddddddiidds", ...$values)) die("DB error 3");
+    if (!$stmt->bind_param(implode("", $types), ...$values)) die("DB error 3");
 
     // Insert into DB
     if (!$stmt->execute()) die("DB error 4");

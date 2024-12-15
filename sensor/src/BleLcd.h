@@ -18,9 +18,10 @@ class BleLcd {
 		void off();
 		void loop();
 		char clear();
-		char setCursor(const char x, const char y);
-		char print(const uint8_t *buf, size_t len);
-		char print(const String str);
+		char print(const char x, const char y, const uint8_t *buf, size_t len);
+		char print(const char x, const char y, const String str);
+		char enableFlash(const char x, const char y, const String str, const uint16_t interval);
+		char disableFlash();
 
 	private:
 		enum State {
@@ -29,6 +30,7 @@ class BleLcd {
 			WAIT,
 			CONNECT,
 			PAIR,
+			INIT,
 			READY
 		};
 		State state;
@@ -37,14 +39,19 @@ class BleLcd {
 		BleUuid lcdBleClearCharacteristicUuid;
 		BleUuid lcdBleSetCursorCharacteristicUuid;
 		BleUuid lcdBlePrintCharacteristicUuid;
+		BleUuid lcdBleFlashCharacteristicUuid;
 
 		BlePeerDevice peer;
 		BleCharacteristic lcdClearCharacteristic;
 		BleCharacteristic lcdSetCursorCharacteristic;
 		BleCharacteristic lcdPrintCharacteristic;
+		BleCharacteristic lcdFlashCharacteristic;
 
 		unsigned long stateTime;
 		BleAddress serverAddr;
+
+		uint8_t curLCD[255];
+		uint8_t curFlash[255];
 
 		static void scanResultCallback(const BleScanResult *scanResult, void *context);
 		void scanResult(const BleScanResult *scanResult);

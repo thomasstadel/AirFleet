@@ -20,11 +20,13 @@ L86::L86() {
 
 	// Open UART
 	L86_SERIAL.begin(9600);
-	waitFor(L86_SERIAL.isEnabled, 5000);
-	L86_SERIAL.print("\r\n");
+	delay(1000);
 
 	String str;
 	if (L86_BAUDRATE != 9600) {
+		// Empty read buffer
+		while (L86_SERIAL.available()) L86_SERIAL.read();
+
 		// Set baudrate of GPS module
 		str = "$PMTK251,";
 		str.concat(L86_BAUDRATE);
@@ -35,16 +37,15 @@ L86::L86() {
 
 		// Change baudrate of serial
 		L86_SERIAL.flush();
-		delay(1000);
 		L86_SERIAL.end();
-
-		// Wait for baudrate to settle
-		delay(1000);
 
 		L86_SERIAL.begin(L86_BAUDRATE);
 		waitFor(L86_SERIAL.isEnabled, 5000);
-		L86_SERIAL.print("\r\n");
+		delay(1000);
 	}
+
+	// Empty read buffer
+	while (L86_SERIAL.available()) L86_SERIAL.read();
 
 	// Set fixpoint interval
 	str = "$PMTK220,";
@@ -89,135 +90,146 @@ void L86::reset() {
 
 void L86::loop() {
 	// Empty serial buffer
-	while (L86_SERIAL.available()) readBuffer.concat((char)L86_SERIAL.read());
+	while (L86_SERIAL.available()) {
+		// Read single character
+		char c = (char)L86_SERIAL.read();
 
-	// Check for newlines
-	int idx = readBuffer.indexOf("$", 1);
-	while (idx > -1) {
-		String str = trim(readBuffer.substring(0, idx));
-		readBuffer = readBuffer.substring(idx);
+		// Start new command
+		if (c == '$') {
+			readBuffer = c;
 
-		// Check if this is GPS position data
-		// Expected format: $GNRMC,105117.000,A,5626.2207,N,00922.2751,E,0.00,2.02,251124,,,A,V*00
-		if (str.startsWith("$GNRMC,") && str.indexOf("*") > -1) {
+			if (gps_valid == -1) gps_valid = 1;
+		}
+		
+		// Check for newlines
+		else if (c == '\r') {
+			String str = trim(readBuffer);
+			readBuffer = "";
 
-#ifdef AIRFLEET_DEBUG
-			Log.info("GPS data: %s", (const char*)str);
-			Log.info("GPS read buffer left: %d", readBuffer.length());
-#endif
+			// Check if this is GPS position data
+			// Expected format: $GNRMC,105117.000,A,5626.2207,N,00922.2751,E,0.00,2.02,251124,,,A,V*00
+			if (str.startsWith("$GNRMC,") && str.indexOf("*") > -1) {
 
-			// CRC check
-			if (str.substring(str.length() - 2) == calcCRC(str.substring(0, str.length() - 2))) {
-				// CRC OK
-
-#ifdef AIRFLEET_DEBUG
-				Log.info("GPS data CRC OK");
-#endif
-
-				// Build datetime string
-				String date_part = getPart(str, 9);
-				String time_part = getPart(str, 1);
-				if (date_part.length() == 6 && time_part.length() == 10) {
-					// Seems ok
-					gps_datetime = "20"; // TODO: In year 2100, please change this to 21,
-										// and increment this todo. I wont be there to
-										// thank you, so thank you in advance!
-
-					// Date part
-					gps_datetime.concat(date_part.substring(4, 6)); // Year
-					gps_datetime.concat("-");
-					gps_datetime.concat(date_part.substring(2, 4)); // Month
-					gps_datetime.concat("-");
-					gps_datetime.concat(date_part.substring(0, 2)); // Date
-					gps_datetime.concat(" ");
-
-					// Time part
-					gps_datetime.concat(time_part.substring(0, 2)); // Hour
-					gps_datetime.concat(":");
-					gps_datetime.concat(time_part.substring(2, 4)); // Minute
-					gps_datetime.concat(":");
-					gps_datetime.concat(time_part.substring(4, 6)); // Second
-				}
-
-				// Check if data is valid
-				if (getPart(str, 2) == "A") {
-					// Valid data
-
-					// GPS position
-					gps_latitude = calcDecimalDegrees(getPart(str, 3));
-					if (getPart(str, 4) == "S") gps_latitude *= -1;
-					gps_longitude = calcDecimalDegrees(getPart(str, 5));
-					if (getPart(str, 6) == "W") gps_longitude *= -1;
-
-					// Speed - knots to km/t. 1 knot = 1.852 km/t
-					// Ref: https://en.wikipedia.org/wiki/Knot_(unit)
-					gps_speed = getPart(str, 7).toFloat() / 1.852;
-
-					// Calculate distance since last sample
-#ifdef L86_DISTANCE_BY_SPEED
-					// Calculate distance using time delta and speed
-					if (gps_millis > 0) {
-						unsigned long time_delta = millis() - gps_millis;
-						gps_distance += gps_speed / 3600000. * time_delta;
-					}
-#else
-	#ifdef L86_DISTANCE_BY_HAVERSINE
-					// Calculate distance using Haversine formula
-					if (gps_prev_latitude != 0. && gps_prev_longitude != 0.) {
-
-						/*
-							BEGIN Haversine implementation
-							This code originates from:
-							https://www.geeksforgeeks.org/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
-						*/
-
-						// distance between latitudes and longitudes
-						double_t dLat = (gps_prev_latitude - gps_latitude) * M_PI / 180.0;
-						double_t dLon = (gps_prev_longitude - gps_longitude) * M_PI / 180.0;
-				
-						// convert to radians
-						double_t lat1 = (gps_prev_latitude) * M_PI / 180.0;
-						double_t lat2 = (gps_latitude) * M_PI / 180.0;
-				
-						// apply formulae
-						double_t a = pow(sin(dLat / 2), 2) + 
-								pow(sin(dLon / 2), 2) * 
-								cos(lat1) * cos(lat2);
-						double_t rad = 6371;
-						double_t c = 2 * asin(sqrt(a));
-						gps_distance += (float_t)(rad * c);
-
-						/*
-							END Haversine implementation
-						*/
-					}
+	#ifdef AIRFLEET_DEBUG
+				Log.info("GPS data: %s", (const char*)str);
 	#endif
-#endif
 
-					gps_prev_latitude = gps_latitude;
-					gps_prev_longitude = gps_longitude;
-					gps_millis = millis();
-					gps_valid = 0;
+				// CRC check
+				if (str.substring(str.length() - 2) == calcCRC(str.substring(0, str.length() - 2))) {
+					// CRC OK
+
+	#ifdef AIRFLEET_DEBUG
+					Log.info("GPS data CRC OK");
+	#endif
+
+					// Build datetime string
+					String date_part = getPart(str, 9);
+					String time_part = getPart(str, 1);
+					if (date_part.length() == 6 && time_part.length() == 10) {
+						// Seems ok
+						gps_datetime = "20"; // TODO: In year 2100, please change this to 21,
+											// and increment this todo. I wont be there to
+											// thank you, so thank you in advance!
+
+						// Date part
+						gps_datetime.concat(date_part.substring(4, 6)); // Year
+						gps_datetime.concat("-");
+						gps_datetime.concat(date_part.substring(2, 4)); // Month
+						gps_datetime.concat("-");
+						gps_datetime.concat(date_part.substring(0, 2)); // Date
+						gps_datetime.concat(" ");
+
+						// Time part
+						gps_datetime.concat(time_part.substring(0, 2)); // Hour
+						gps_datetime.concat(":");
+						gps_datetime.concat(time_part.substring(2, 4)); // Minute
+						gps_datetime.concat(":");
+						gps_datetime.concat(time_part.substring(4, 6)); // Second
+					}
+
+					// Check if data is valid
+					if (getPart(str, 2) == "A") {
+						// Valid data
+
+						// GPS position
+						gps_latitude = calcDecimalDegrees(getPart(str, 3));
+						if (getPart(str, 4) == "S") gps_latitude *= -1;
+						gps_longitude = calcDecimalDegrees(getPart(str, 5));
+						if (getPart(str, 6) == "W") gps_longitude *= -1;
+
+						// Speed - knots to km/t. 1 knot = 1.852 km/t
+						// Ref: https://en.wikipedia.org/wiki/Knot_(unit)
+						gps_speed = getPart(str, 7).toFloat() / 1.852;
+
+						// Calculate distance since last sample
+	#ifdef L86_DISTANCE_BY_SPEED
+						// Calculate distance using time delta and speed
+						if (gps_millis > 0) {
+							unsigned long time_delta = millis() - gps_millis;
+							gps_distance += gps_speed / 3600000. * time_delta;
+						}
+	#else
+		#ifdef L86_DISTANCE_BY_HAVERSINE
+						// Calculate distance using Haversine formula
+						if (gps_prev_latitude != 0. && gps_prev_longitude != 0.) {
+
+							/*
+								BEGIN Haversine implementation
+								This code originates from:
+								https://www.geeksforgeeks.org/haversine-formula-to-find-distance-between-two-points-on-a-sphere/
+							*/
+
+							// distance between latitudes and longitudes
+							double_t dLat = (gps_prev_latitude - gps_latitude) * M_PI / 180.0;
+							double_t dLon = (gps_prev_longitude - gps_longitude) * M_PI / 180.0;
+					
+							// convert to radians
+							double_t lat1 = (gps_prev_latitude) * M_PI / 180.0;
+							double_t lat2 = (gps_latitude) * M_PI / 180.0;
+					
+							// apply formulae
+							double_t a = pow(sin(dLat / 2), 2) + 
+									pow(sin(dLon / 2), 2) * 
+									cos(lat1) * cos(lat2);
+							double_t rad = 6371;
+							double_t c = 2 * asin(sqrt(a));
+							gps_distance += (float_t)(rad * c);
+
+							/*
+								END Haversine implementation
+							*/
+						}
+		#endif
+	#endif
+
+						gps_prev_latitude = gps_latitude;
+						gps_prev_longitude = gps_longitude;
+						gps_millis = millis();
+						gps_valid = 0;
+					}
+					else {
+						// No valid GPS position
+						gps_latitude = 0.;
+						gps_longitude = 0.;
+						gps_speed = 0.;
+						gps_valid = 1;
+					}
 				}
 				else {
-					// No valid GPS position
-					gps_latitude = 0.;
-					gps_longitude = 0.;
-					gps_speed = 0.;
-					gps_valid = 1;
+					// CRC error
+	#ifdef AIRFLEET_DEBUG				
+					Log.error("CRC error reading from GPS-module. Got CRC: %s, calculated CRC: %s",
+						(const char*)str.substring(str.length() - 2),
+						(const char*)calcCRC(str.substring(0, str.length() - 2)));
+	#endif
 				}
-			}
-			else {
-				// CRC error
-#ifdef AIRFLEET_DEBUG				
-				Log.error("CRC error reading from GPS-module. Got CRC: %s, calculated CRC: %s",
-					(const char*)str.substring(str.length() - 2),
-					(const char*)calcCRC(str.substring(0, str.length() - 2)));
-#endif
 			}
 		}
 
-		idx = readBuffer.indexOf("$", 1);
+		// Append to buffer
+		else  {
+			readBuffer.concat(c);
+		}
 	}
 }
 
@@ -229,11 +241,12 @@ void L86::on() {
 	if (!L86_SERIAL.isEnabled()) {
 		L86_SERIAL.begin(L86_BAUDRATE);
 		waitFor(L86_SERIAL.isEnabled, 5000);
-		L86_SERIAL.print("\r\n");
+		delay(1000);
 	}
 
 	// Force the GPS module on
 	digitalWrite(L86_FORCEON_PIN, HIGH);
+	delay(50);
 }
 
 void L86::off() {

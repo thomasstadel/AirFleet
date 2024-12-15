@@ -96,7 +96,7 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
   // SEE PAGE 45/46 FOR INITIALIZATION SPECIFICATION!
   // according to datasheet, we need at least 40ms after power rises above 2.7V
   // before sending commands. Arduino can turn on way befer 4.5V so we'll wait 50
-  delayMicroseconds(50000); 
+  delay(40); 
   // Now we pull both RS and R/W low to begin commands
   digitalWrite(_rs_pin, LOW);
   digitalWrite(_enable_pin, LOW);
@@ -106,42 +106,42 @@ void LiquidCrystal::begin(uint8_t cols, uint8_t lines, uint8_t dotsize) {
 
   // 4-Bit initialization sequence from Technobly
   write4bits(0x03);         // Put back into 8-bit mode
-  delayMicroseconds(5000);
+  delay(5);
 
   write4bits(0x08);         // Comment this out for V1 OLED
-  delayMicroseconds(5000);  // Comment this out for V1 OLED
+  delay(5);  // Comment this out for V1 OLED
   
   write4bits(0x02);         // Put into 4-bit mode
-  delayMicroseconds(5000);
+  delay(5);
   write4bits(0x02);
-  delayMicroseconds(5000);
+  delay(5);
   write4bits(0x08);
-  delayMicroseconds(5000);
+  delay(5);
   
   command(LCD_DISPLAYCONTROL);                  // Turn Off
-  delayMicroseconds(5000);
+  delay(5);
   command(LCD_FUNCTIONSET | _displayfunction);  // Set # lines, font size, etc.
-  delayMicroseconds(5000);
+  delay(5);
   clear();                                      // Clear Display
   command(LCD_ENTRYMODESET | LCD_ENTRYLEFT);    // Set Entry Mode
-  delayMicroseconds(5000);
+  delay(5);
   home();                                       // Home Cursor
-  delayMicroseconds(5000);
+  delay(5);
   command(LCD_DISPLAYCONTROL | LCD_DISPLAYON);  // Turn On - enable cursor & blink
-  delayMicroseconds(5000);
+  delay(5);
 }
 
 /********** high level commands, for the user! */
 void LiquidCrystal::clear()
 {
   command(LCD_CLEARDISPLAY);  // clear display, set cursor position to zero
-  delayMicroseconds(5000);  // this command takes a long time!
+  delay(10);  // this command takes a long time!
 }
 
 void LiquidCrystal::home()
 {
   command(LCD_RETURNHOME);  // set cursor position to zero
-  delayMicroseconds(5000);  // this command takes a long time!
+  delay(5);  // this command takes a long time!
 }
 
 void LiquidCrystal::setCursor(uint8_t col, uint8_t row)
@@ -261,7 +261,7 @@ void LiquidCrystal::pulseEnable(void) {
   digitalWrite(_enable_pin, HIGH);
   delayMicroseconds(1);    // enable pulse must be >450ns
   digitalWrite(_enable_pin, LOW);
-  delayMicroseconds(100);   // commands need > 37us to settle
+  delayMicroseconds(40);   // commands need > 37us to settle
 }
 
 void LiquidCrystal::write4bits(uint8_t value) {
