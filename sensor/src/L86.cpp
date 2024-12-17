@@ -20,6 +20,7 @@ L86::L86() {
 
 	// Open UART
 	L86_SERIAL.begin(9600);
+	waitFor(L86_SERIAL.isEnabled, 15000);
 	delay(1000);
 
 	String str;
@@ -40,7 +41,7 @@ L86::L86() {
 		L86_SERIAL.end();
 
 		L86_SERIAL.begin(L86_BAUDRATE);
-		waitFor(L86_SERIAL.isEnabled, 5000);
+		waitFor(L86_SERIAL.isEnabled, 15000);
 		delay(1000);
 	}
 
@@ -106,13 +107,13 @@ void L86::loop() {
 			String str = trim(readBuffer);
 			readBuffer = "";
 
+	#ifdef AIRFLEET_DEBUG
+			Log.info("GPS data: %s", (const char*)str);
+	#endif
+
 			// Check if this is GPS position data
 			// Expected format: $GNRMC,105117.000,A,5626.2207,N,00922.2751,E,0.00,2.02,251124,,,A,V*00
 			if (str.startsWith("$GNRMC,") && str.indexOf("*") > -1) {
-
-	#ifdef AIRFLEET_DEBUG
-				Log.info("GPS data: %s", (const char*)str);
-	#endif
 
 				// CRC check
 				if (str.substring(str.length() - 2) == calcCRC(str.substring(0, str.length() - 2))) {

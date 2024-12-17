@@ -18,6 +18,7 @@ void Sen50::on() {
     // Start measurement
 	uint8_t buf[] = { 0x00, 0x21 };
 	writeToDevice(buf, 2);
+	delay(50);
 }
 
 void Sen50::off() {

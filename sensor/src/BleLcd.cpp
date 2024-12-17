@@ -64,6 +64,12 @@ void BleLcd::off() {
     BLE.off();
 }
 
+void BleLcd::clearCurrent() {
+	memset(curLCD, 32, sizeof(curLCD));
+	curLCD[0] = 0;
+	memset(curFlash, 0, sizeof(curFlash));
+}
+
 char BleLcd::clear() {
 	// Prepare buffer
 	const uint8_t buf[] = {0};

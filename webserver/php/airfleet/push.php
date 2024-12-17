@@ -3,11 +3,17 @@
         @brief      Endpoint for airfleet pushing data to cloud.
                     Stores entries in MySQL db.
         @author     Thomas Stadel
-        @date       2024-11-27
+        @date       2024-12-16
     */
 
     // Include config
     require_once("config.php");
+
+    // Validate client
+    if (empty($_SERVER["HTTP_API_KEY"]) or $_SERVER["HTTP_API_KEY"] != $_api_token) {
+        http_response_code(403);
+        die("Forbidden");
+    }
 
     // Read JSON
     if (!$json = json_decode(file_get_contents("php://input"), true)) die("Unable to parse JSON");
@@ -59,7 +65,7 @@
     if (!$stmt->bind_param(implode("", $types), ...$values)) die("DB error 3");
 
     // Insert into DB
-    if (!$stmt->execute()) die("DB error 4");
+    if (!$stmt->execute()) die("DB error 4 (possible duplicate key)");
 
     // All OK
     die("OK");

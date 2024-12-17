@@ -66,7 +66,11 @@ float_t getBatteryV();
 // Timer that triggers sample every X sec.
 Timer sampleTimer(SAMPLE_INTERVAL_MS, triggerSample);
 
+// Flag that forces LCD update
+bool forceLcdUpdate = false;
+
 void setup() {
+
 #ifdef AIRFLEET_DEBUG
   // Wait for USB serial
   waitFor(Serial.isConnected, 15000);
@@ -132,6 +136,7 @@ void loop() {
 
     case IDLE:
       // Housekeeping for different modules
+
       lcd.loop();
       sen50.loop();
       htu31.loop();
@@ -142,7 +147,7 @@ void loop() {
       if (!isIgnitionOn()) state = SLEEP;
 
       // Check if we need to publish to cloud
-      else if (publishTime + PUBLISH_INTERVAL_MS <= millis()) state = PUBLISH;
+      else if (publishTime == 0 || publishTime + PUBLISH_INTERVAL_MS <= millis()) state = PUBLISH;
 
       break;
 
@@ -157,7 +162,7 @@ void loop() {
       cv_result = mics.getSample(cv);
 
       // Particles
-      if (pm_result == 0 && memcmp(pm, log_pm, sizeof(pm)) != 0) {
+      if (pm_result == 0 && (memcmp(pm, log_pm, sizeof(pm)) != 0 || forceLcdUpdate)) {
         // Find max PM part
         float_t maxpm = 0;
         for (size_t i = 0; i < sizeof(pm) / sizeof(pm[0]); i++) {
@@ -173,7 +178,7 @@ void loop() {
       }
 
       // Temperature / humidity
-      if (th_result == 0 && memcmp(th, log_th, sizeof(th)) != 0) {
+      if (th_result == 0 && (memcmp(th, log_th, sizeof(th)) != 0 || forceLcdUpdate)) {
         // Show temp at top right in format: XXXC
         lcd.print(16, 0, String::format("%3.0fC", th[0]));
 
@@ -184,7 +189,7 @@ void loop() {
       }
 
       // CO2 / VOC
-      if (cv_result == 0 && memcmp(cv, log_cv, sizeof(cv)) != 0) {
+      if (cv_result == 0 && (memcmp(cv, log_cv, sizeof(cv)) != 0 || forceLcdUpdate)) {
         lcd.print(0, 1, "CO2 " + generate_scale((float_t)cv[1], CO2_MIN, CO2_MAX,
           past_average[0], 16)); // + " " + String(cv[1]));
 
@@ -194,7 +199,7 @@ void loop() {
       // GPS
       if (gps_result == 0) {
         // Show clock at top left 2024-11-11 11:11:11
-        if (log_datetime.substring(11, 16) != datetime.substring(11, 16)) {
+        if (log_datetime.substring(11, 16) != datetime.substring(11, 16) || forceLcdUpdate) {
           lcd.print(0, 0, datetime.substring(11, 16));
         }
         log_datetime = datetime;
@@ -222,6 +227,9 @@ void loop() {
 
       // Check if we need to publish data
       if (log_gps[3] >= PUBLISH_INTERVAL_KM) state = PUBLISH;
+
+      // Clear force update flag
+      forceLcdUpdate = false;
 
 #ifdef AIRFLEET_DEBUG
       Log.info("---------------");
@@ -350,7 +358,7 @@ void loop() {
 
       // Put Photon 2 to sleep, and wakeup every X sec to check for ignition
       SystemSleepConfiguration config;
-      config.mode(SystemSleepMode::STOP).duration(IGNITION_ON_INTERVAL_MS);
+      config.mode(SystemSleepMode::ULTRA_LOW_POWER).duration(IGNITION_CHECK_INTERVAL);
       while (!isIgnitionOn()) System.sleep(config);
 
 #ifdef AIRFLEET_DEBUG
@@ -370,6 +378,7 @@ void triggerSample() {
 
 // Start and check connection to Particle cloud
 bool connectCloud() {
+
     // Check WiFi
     if (WiFi.isOff()) {
 
@@ -399,7 +408,6 @@ void disconnectCloud() {
 #endif
 
   Particle.disconnect();
-  WiFi.disconnect();
   WiFi.off();
 }
 
@@ -438,6 +446,8 @@ void airfleet_levels(const char *event, const char *data) {
   }
 
   disconnectCloud();
+
+  forceLcdUpdate = true;
 }
 
 // Function generating a scale, e.g.:

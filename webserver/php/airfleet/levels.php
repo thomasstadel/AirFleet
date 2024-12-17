@@ -2,11 +2,17 @@
     /*
         @brief      Returns average levels from last 24 hours
         @author     Thomas Stadel
-        @date       2024-11-30
+        @date       2024-12-16
     */
 
     // Include config
     require_once("config.php");
+
+    // Validate client
+    if (empty($_SERVER["HTTP_API_KEY"]) or $_SERVER["HTTP_API_KEY"] != $_api_token) {
+        http_response_code(403);
+        die("Forbidden");
+    }
 
     // Connect to DB
     $db = new mysqli($_db_hostname, $_db_username, $_db_password, $_db_database);

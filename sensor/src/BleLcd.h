@@ -22,6 +22,7 @@ class BleLcd {
 		char print(const char x, const char y, const String str);
 		char enableFlash(const char x, const char y, const String str, const uint16_t interval);
 		char disableFlash();
+		void clearCurrent();
 
 	private:
 		enum State {
