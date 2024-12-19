@@ -1,5 +1,8 @@
 /*
     @brief  Settings for AirFleet
+
+            This file is excluded from github, so please remember to update
+            the example file accordingly when making any changes below.
 */
 
 #ifndef SETTINGS_H
@@ -32,7 +35,7 @@
 // Ignition / battery-voltage
 #define VIN_REF_PIN                A5
 #define VIN_REF_FACTOR             16.5/4095.
-#define IGNITION_ON_V              3.
+#define IGNITION_ON_V              0.
 #define IGNITION_CHECK_INTERVAL    15000
 
 // BLE LCD
@@ -50,6 +53,7 @@
 #define L86_FORCEON_PIN             D2
 #define L86_SERIAL                  Serial1
 #define L86_BAUDRATE                115200
+//#define L86_DEBUG_SPEED             36.
 #define L86_DISTANCE_BY_SPEED
 //#define L86_DISTANCE_BY_HAVERSINE
 

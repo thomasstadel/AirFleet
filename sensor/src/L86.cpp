@@ -160,7 +160,11 @@ void L86::loop() {
 
 						// Speed - knots to km/t. 1 knot = 1.852 km/t
 						// Ref: https://en.wikipedia.org/wiki/Knot_(unit)
+	#ifdef L86_DEBUG_SPEED	
+						gps_speed = L86_DEBUG_SPEED;
+	#else
 						gps_speed = getPart(str, 7).toFloat() / 1.852;
+	#endif
 
 						// Calculate distance since last sample
 	#ifdef L86_DISTANCE_BY_SPEED
